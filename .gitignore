@@ -24,4 +24,4 @@ nbar-protocols-qos.txt
 # Sensitive files
 *.pem
 *.key
-SC01
+protocol_classifications_cache.json
