@@ -21,6 +21,9 @@ go.work
 # Output files
 nbar-protocols-qos.txt
 
+# Cache files
+protocol_classifications_cache.json
+
 # Sensitive files
 *.pem
 *.key
