@@ -27,4 +27,4 @@ protocol_classifications_cache.json
 # Sensitive files
 *.pem
 *.key
-protocol_classifications_cache.json
+SC01
