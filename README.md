@@ -42,7 +42,9 @@ This tool connects to Cisco network switches, fetches the list of NBAR (Network-
 
 ## Configuration
 
-Before running the tool, you need to set up your credentials in 1Password:
+This tool supports multiple methods for handling credentials:
+
+### Method 1: Using 1Password (Recommended for Security)
 
 1. Store your DeepSeek API key in 1Password
 2. Store your SSH private key in 1Password
@@ -51,6 +53,32 @@ Before running the tool, you need to set up your credentials in 1Password:
    API_KEY="op://YourVault/DeepSeek/API Key"
    SWITCH_KEY_FILE="op://YourVault/YourSSHKey/private key"
    ```
+4. Make sure to use the `--use-1password` flag when running the tool
+
+### Method 2: Using Environment Variables
+
+1. Set environment variables for your credentials:
+   ```bash
+   export DEEPSEEK_API_KEY="your-api-key-here"
+   export SSH_KEY_PATH="/path/to/your/ssh/key"
+   ```
+
+2. Update the `run-nbar-qos.sh` script to use these environment variables:
+   ```bash
+   API_KEY="$DEEPSEEK_API_KEY"
+   SWITCH_KEY_FILE="$SSH_KEY_PATH"
+   ```
+
+### Method 3: Direct File Paths
+
+1. Store your SSH key in a secure location on your filesystem
+2. Update the `run-nbar-qos.sh` script with direct paths:
+   ```bash
+   API_KEY="your-api-key-here"
+   SWITCH_KEY_FILE="/path/to/your/ssh/key"
+   ```
+
+**Note**: Methods 2 and 3 are less secure as they involve storing credentials in plain text. Use Method 1 (1Password) for production environments.
 
 ## Usage
 
@@ -70,11 +98,32 @@ Run the tool using the provided shell script:
 
 ## Security
 
-This tool uses 1Password to securely fetch sensitive credentials:
-- DeepSeek API key
-- SSH private key
+### Credential Handling
 
-No credentials are stored in plain text.
+This tool offers multiple methods for handling credentials, with varying security levels:
+
+1. **1Password Integration (Most Secure)**:
+   - DeepSeek API key and SSH private key are stored in 1Password
+   - Credentials are fetched securely at runtime
+   - No credentials are stored in plain text
+
+2. **Environment Variables (Moderate Security)**:
+   - Credentials are stored in environment variables
+   - Not persisted in script files, but visible in process listings
+   - Suitable for development environments
+
+3. **Direct File Paths (Basic Security)**:
+   - API key stored directly in script
+   - SSH key stored as a file on disk
+   - Simplest approach but least secure
+   - Suitable only for testing environments
+
+### Best Practices
+
+- Use 1Password integration for production environments
+- Ensure SSH keys have appropriate permissions (chmod 600)
+- Never commit credentials to version control
+- Consider using a dedicated service account for switch access
 
 ## How It Works
 
