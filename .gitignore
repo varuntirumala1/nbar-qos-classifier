@@ -18,11 +18,39 @@ nbar-auto-ai-classmaps
 # Go workspace file
 go.work
 
+# Build artifacts
+build/
+dist/
+
 # Output files
-nbar-protocols-qos.txt
+nbar-protocols-qos*.txt
+nbar-protocols-qos*.json
 
 # Cache files
-protocol_classifications_cache.json
+protocol_classifications_cache*.json
+*.cache
+
+# Test files
+test-*.txt
+temp-*.txt
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.backup
+*.bak
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Sensitive files
 *.pem
