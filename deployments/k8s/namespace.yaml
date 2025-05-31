@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nbar-system
+  labels:
+    name: nbar-system
+    app.kubernetes.io/name: nbar-classifier
+    app.kubernetes.io/component: system

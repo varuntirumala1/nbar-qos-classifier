@@ -1,0 +1,209 @@
+# NBAR QoS Classifier Configuration
+# This file contains all configuration options for the NBAR QoS Classifier
+
+app:
+  name: "nbar-qos-classifier"
+  version: "2.0.0"
+  environment: "production"  # development, staging, production
+  batch_size: 25
+  timeout: "90s"
+  max_retries: 3
+
+ssh:
+  host: "192.168.120.1"
+  port: "22"
+  user: "99940218"
+  key_file: "op://Infrastructure/2xxtsdrmo7hrqasbefskas4zxq/private key"
+  timeout: "10s"
+  max_connections: 5
+  connection_pool_size: 3
+  keep_alive: "30s"
+
+ai:
+  provider: "deepseek"  # deepseek, openai, claude, ollama
+  api_key: "op://Infrastructure/DeepSeek/NBAR-QOS-API-Key"
+  model: "deepseek-reasoner"
+  temperature: 0.1
+  max_tokens: 1000
+  timeout: "90s"
+
+  rate_limit:
+    requests_per_minute: 60
+    burst_size: 10
+    backoff_strategy: "exponential"  # linear, exponential
+    max_backoff: "60s"
+
+  fallback:
+    - provider: "openai"
+      enabled: false
+    - provider: "claude"
+      enabled: false
+
+  providers:
+    deepseek:
+      api_key: "op://Infrastructure/DeepSeek/NBAR-QOS-API-Key"
+      model: "deepseek-reasoner"
+      temperature: 0.1
+      max_tokens: 1000
+      base_url: "https://api.deepseek.com/v1"
+
+    openai:
+      api_key: ""
+      model: "gpt-4"
+      temperature: 0.1
+      max_tokens: 1000
+      base_url: "https://api.openai.com/v1"
+
+    claude:
+      api_key: ""
+      model: "claude-3-sonnet-20240229"
+      temperature: 0.1
+      max_tokens: 1000
+      base_url: "https://api.anthropic.com/v1"
+
+qos:
+  default_class: "CS1"
+  learning_enabled: true
+  confidence_threshold: 0.8
+
+  classes:
+    EF:
+      name: "Expedited Forwarding"
+      description: "Real-time traffic (Voice, Video calls)"
+      dscp: "ef"
+      priority: 1
+      protocols:
+        - "rtp"
+        - "rtp-audio"
+        - "rtp-video"
+        - "rtcp"
+        - "sip"
+        - "facetime"
+        - "wifi-calling"
+        - "web-rtc"
+        - "web-rtc-audio"
+        - "ms-teams"
+        - "ms-teams-media"
+
+    AF41:
+      name: "Assured Forwarding 41"
+      description: "Business-critical applications"
+      dscp: "af41"
+      priority: 2
+      protocols:
+        - "zoom-meetings"
+        - "skype"
+        - "discord"
+        - "vmware-vsphere"
+        - "youtube"
+        - "netflix"
+
+    AF21:
+      name: "Assured Forwarding 21"
+      description: "Important data applications"
+      dscp: "af21"
+      priority: 3
+      protocols:
+        - "smtp"
+        - "secure-smtp"
+        - "tftp"
+        - "http"
+        - "http-alt"
+        - "https"
+        - "quic"
+        - "ssl"
+
+    CS1:
+      name: "Class Selector 1"
+      description: "Background traffic"
+      dscp: "cs1"
+      priority: 4
+      protocols: []
+
+  custom_rules:
+    - name: "VoIP Protocols"
+      pattern: ".*voice.*|.*voip.*|.*sip.*"
+      class: "EF"
+      priority: 1
+      enabled: true
+
+    - name: "Video Streaming"
+      pattern: ".*video.*|.*stream.*|.*netflix.*|.*youtube.*"
+      class: "AF41"
+      priority: 2
+      enabled: true
+
+    - name: "Web Traffic"
+      pattern: ".*http.*|.*web.*|.*browser.*"
+      class: "AF21"
+      priority: 3
+      enabled: true
+
+  protocol_families:
+    voice:
+      - "sip"
+      - "rtp"
+      - "rtcp"
+      - "h323"
+      - "mgcp"
+
+    video:
+      - "rtp-video"
+      - "rtsp"
+      - "h264"
+      - "webrtc"
+
+    messaging:
+      - "xmpp"
+      - "mqtt"
+      - "whatsapp"
+      - "telegram"
+
+    web:
+      - "http"
+      - "https"
+      - "quic"
+      - "websocket"
+
+cache:
+  enabled: true
+  ttl: "24h"
+  max_size: 10000
+  file_path: "protocol_classifications_cache.json"
+  compression: true
+  backup_path: "protocol_classifications_cache.backup.json"
+
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json, text
+  output: "stdout"  # stdout, stderr, file
+  file: "/var/log/nbar-classifier/app.log"
+  max_size: 100  # MB
+  max_backups: 5
+  max_age: 30  # days
+  compress: true
+
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+  namespace: "nbar_classifier"
+  subsystem: ""
+
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  tls_enabled: false
+  cert_file: ""
+  key_file: ""
+  static_dir: "web/static"
+  template_dir: "web/templates"
+
+security:
+  use_1password: true
+  credential_rotation: false
+  audit_logging: true
+  encryption_key: ""
+  jwt_secret: ""
+  session_timeout: "24h"

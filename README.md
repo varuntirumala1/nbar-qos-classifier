@@ -1,100 +1,324 @@
-# NBAR QoS Classifier
+# NBAR QoS Classifier v2.0
 
-A tool for automatically classifying network protocols into QoS classes using AI.
+A modern, enterprise-grade tool for automatically classifying network protocols into QoS classes using AI.
 
 ## Overview
 
-This tool connects to Cisco network switches, fetches the list of NBAR (Network-Based Application Recognition) protocols, and classifies them into appropriate QoS (Quality of Service) classes. It uses a combination of predefined classifications and AI-based classification for unknown protocols.
+The NBAR QoS Classifier is a sophisticated network automation tool that connects to Cisco network switches, fetches NBAR (Network-Based Application Recognition) protocol data, and intelligently classifies protocols into appropriate QoS (Quality of Service) classes. It combines predefined classifications, custom rules, and AI-powered classification for comprehensive protocol management.
 
-## Features
+## ✨ Features
 
-- Fetches protocol lists from Cisco switches via SSH
-- Classifies protocols into QoS classes (EF, AF41, AF21, CS1)
-- Uses DeepSeek R1 AI to classify unknown protocols
-- Generates Cisco configuration commands for QoS policy
-- Securely fetches credentials from 1Password
-- Supports dry-run mode for testing without making changes
+### Core Functionality
+- **Intelligent Protocol Classification**: Uses AI (DeepSeek R1) with fallback providers
+- **Multi-Source Classification**: Predefined rules, custom patterns, and AI classification
+- **Real-time Protocol Discovery**: Fetches live protocol data from Cisco switches via SSH
+- **Configuration Generation**: Generates Cisco IOS configuration commands for QoS policies
+- **Dry-run Mode**: Test configurations without making changes
 
-## Prerequisites
+### Enterprise Features
+- **Secure Credential Management**: 1Password integration with fallback options
+- **Comprehensive Caching**: Intelligent caching with TTL and compression
+- **Metrics & Monitoring**: Prometheus metrics with Grafana dashboards
+- **Structured Logging**: JSON logging with multiple output options
+- **Web Interface**: Modern web UI for management and monitoring
+- **Rate Limiting**: Configurable rate limiting for AI API calls
+- **Circuit Breaker**: Fault tolerance for external service calls
 
-- Go 1.18 or higher (for compilation only)
-- 1Password CLI (`op`) installed and configured
-- SSH access to the network switch
-- DeepSeek API key
+## 🏗️ Architecture
 
-## Installation
+The application follows a modular, microservices-inspired architecture:
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/varuntirumala1/nbar-qos-classifier.git
-   cd nbar-qos-classifier
-   ```
-
-2. Compile the program:
-   ```
-   go build nbar-auto-ai-classmaps.go
-   ```
-
-3. Make the script executable:
-   ```
-   chmod +x run-nbar-qos.sh
-   ```
-
-## Configuration
-
-This tool supports multiple methods for handling credentials:
-
-### Method 1: Using 1Password (Recommended for Security)
-
-1. Store your DeepSeek API key in 1Password
-2. Store your SSH private key in 1Password
-3. Update the references in `run-nbar-qos.sh` to match your 1Password structure:
-   ```bash
-   API_KEY="op://YourVault/DeepSeek/API Key"
-   SWITCH_KEY_FILE="op://YourVault/YourSSHKey/private key"
-   ```
-4. Make sure to use the `--use-1password` flag when running the tool
-
-### Method 2: Using Environment Variables
-
-1. Set environment variables for your credentials:
-   ```bash
-   export DEEPSEEK_API_KEY="your-api-key-here"
-   export SSH_KEY_PATH="/path/to/your/ssh/key"
-   ```
-
-2. Update the `run-nbar-qos.sh` script to use these environment variables:
-   ```bash
-   API_KEY="$DEEPSEEK_API_KEY"
-   SWITCH_KEY_FILE="$SSH_KEY_PATH"
-   ```
-
-### Method 3: Direct File Paths
-
-1. Store your SSH key in a secure location on your filesystem
-2. Update the `run-nbar-qos.sh` script with direct paths:
-   ```bash
-   API_KEY="your-api-key-here"
-   SWITCH_KEY_FILE="/path/to/your/ssh/key"
-   ```
-
-**Note**: Methods 2 and 3 are less secure as they involve storing credentials in plain text. Use Method 1 (1Password) for production environments.
-
-## Usage
-
-Run the tool using the provided shell script:
-
-```bash
-./run-nbar-qos.sh --fetch-from-switch --output=cisco
+```
+├── cmd/nbar-classifier/     # Main application entry point
+├── pkg/                     # Core packages
+│   ├── ai/                 # AI provider implementations
+│   ├── cache/              # Caching layer
+│   ├── config/             # Configuration management
+│   ├── metrics/            # Prometheus metrics
+│   ├── qos/                # QoS classification logic
+│   ├── ssh/                # SSH client for switch communication
+│   └── web/                # Web interface (future)
+├── internal/               # Internal packages
+│   ├── logger/             # Structured logging
+│   └── validator/          # Input validation
+├── configs/                # Configuration files
+├── deployments/            # Docker and Kubernetes manifests
+└── test/                   # Test suites
 ```
 
-### Common Options
+## 📋 Prerequisites
 
-- `--fetch-from-switch`: Fetch protocol list from the switch
-- `--output=cisco`: Output in Cisco configuration format
-- `--dry-run`: Test without making changes
-- `--push-config`: Push configuration to the switch
-- `--save-config`: Save configuration to startup-config
+### Runtime Requirements
+- **Network Access**: SSH connectivity to Cisco switches
+- **AI API Access**: DeepSeek API key (or other supported providers)
+- **Optional**: 1Password CLI for secure credential management
+
+### Development Requirements
+- **Go 1.23+**: For building from source
+- **Docker**: For containerized deployment
+- **Kubernetes**: For orchestrated deployment (optional)
+
+## 🚀 Quick Start
+
+### Using Pre-built Binary
+
+1. **Download the latest release**:
+   ```bash
+   curl -L https://github.com/varuntirumala1/nbar-qos-classifier/releases/latest/download/nbar-classifier-linux-amd64 -o nbar-classifier
+   chmod +x nbar-classifier
+   ```
+
+2. **Create configuration**:
+   ```bash
+   cp configs/config.yaml my-config.yaml
+   # Edit my-config.yaml with your settings
+   ```
+
+3. **Run the classifier**:
+   ```bash
+   ./nbar-classifier --config=my-config.yaml --fetch-from-switch --output=cisco
+   ```
+
+### Building from Source
+
+1. **Clone and build**:
+   ```bash
+   git clone https://github.com/varuntirumala1/nbar-qos-classifier.git
+   cd nbar-qos-classifier
+   make build
+   ```
+
+2. **Run with development config**:
+   ```bash
+   make run-dev
+   ```
+
+### Using Docker
+
+1. **Run with Docker Compose**:
+   ```bash
+   cd deployments/docker
+   docker-compose up -d
+   ```
+
+2. **Access the application**:
+   - Web Interface: http://localhost:8080
+   - Metrics: http://localhost:9090
+   - Grafana: http://localhost:3000
+
+## ⚙️ Configuration
+
+The application uses a YAML configuration file with comprehensive options:
+
+### Basic Configuration
+
+```yaml
+# configs/config.yaml
+app:
+  name: "nbar-qos-classifier"
+  version: "2.0.0"
+  environment: "production"
+  batch_size: 25
+  timeout: "90s"
+  max_retries: 3
+
+ssh:
+  host: "192.168.120.1"
+  port: "22"
+  user: "admin"
+  key_file: "/path/to/ssh/key"  # or 1Password reference
+  timeout: "10s"
+
+ai:
+  provider: "deepseek"
+  api_key: "your-api-key"  # or 1Password reference
+  model: "deepseek-reasoner"
+  temperature: 0.1
+  max_tokens: 1000
+```
+
+### Credential Management Options
+
+#### Option 1: 1Password Integration (Recommended)
+```yaml
+security:
+  use_1password: true
+
+ssh:
+  key_file: "op://Infrastructure/SSH-Key/private key"
+
+ai:
+  api_key: "op://Infrastructure/DeepSeek/API-Key"
+```
+
+#### Option 2: Environment Variables
+```bash
+export SSH_KEY_PATH="/secure/path/to/ssh/key"
+export DEEPSEEK_API_KEY="your-api-key"
+```
+
+#### Option 3: Direct Configuration
+```yaml
+ssh:
+  key_file: "/path/to/ssh/key"
+ai:
+  api_key: "your-api-key-here"
+```
+
+### Advanced Configuration
+
+#### AI Provider Fallbacks
+```yaml
+ai:
+  provider: "deepseek"
+  fallback:
+    - provider: "openai"
+      enabled: true
+    - provider: "claude"
+      enabled: false
+
+  providers:
+    deepseek:
+      api_key: "op://Vault/DeepSeek/key"
+      model: "deepseek-reasoner"
+    openai:
+      api_key: "op://Vault/OpenAI/key"
+      model: "gpt-4"
+```
+
+#### Custom QoS Rules
+```yaml
+qos:
+  custom_rules:
+    - name: "VoIP Protocols"
+      pattern: ".*voice.*|.*voip.*|.*sip.*"
+      class: "EF"
+      priority: 1
+      enabled: true
+
+    - name: "Video Streaming"
+      pattern: ".*video.*|.*stream.*"
+      class: "AF41"
+      priority: 2
+      enabled: true
+```
+
+#### Caching Configuration
+```yaml
+cache:
+  enabled: true
+  ttl: "24h"
+  max_size: 10000
+  file_path: "protocol_cache.json"
+  compression: true
+  backup_path: "protocol_cache.backup.json"
+```
+
+## 📖 Usage
+
+### Command Line Interface
+
+The new CLI provides comprehensive options for protocol classification:
+
+```bash
+# Basic usage - fetch from switch and generate Cisco config
+./nbar-classifier --config=config.yaml --fetch-from-switch --output=cisco
+
+# Use input file instead of fetching from switch
+./nbar-classifier --config=config.yaml --input-file=protocols.txt --output=text
+
+# Dry run mode (test without making changes)
+./nbar-classifier --config=config.yaml --fetch-from-switch --output=cisco --dry-run
+
+# Push configuration to switch
+./nbar-classifier --config=config.yaml --fetch-from-switch --output=cisco --push-config --save-config
+```
+
+### Command Line Options
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--config` | Path to configuration file | `--config=./configs/config.yaml` |
+| `--fetch-from-switch` | Fetch protocols from switch via SSH | `--fetch-from-switch` |
+| `--input-file` | Use existing protocol list file | `--input-file=protocols.txt` |
+| `--output` | Output format (text/cisco) | `--output=cisco` |
+| `--push-config` | Push config to switch | `--push-config` |
+| `--dry-run` | Test without making changes | `--dry-run` |
+| `--save-config` | Save to startup-config | `--save-config` |
+| `--batch-size` | AI batch size override | `--batch-size=50` |
+| `--log-level` | Log level override | `--log-level=debug` |
+| `--enable-metrics` | Enable metrics server | `--enable-metrics` |
+| `--enable-web` | Enable web interface | `--enable-web` |
+| `--version` | Show version information | `--version` |
+
+### Usage Examples
+
+#### 1. Basic Protocol Classification
+```bash
+# Fetch protocols and classify them
+./nbar-classifier \
+  --config=configs/config.yaml \
+  --fetch-from-switch \
+  --output=cisco \
+  --log-level=info
+```
+
+#### 2. Development Mode with Monitoring
+```bash
+# Run with web interface and metrics enabled
+./nbar-classifier \
+  --config=configs/config.yaml \
+  --fetch-from-switch \
+  --output=text \
+  --enable-web \
+  --enable-metrics \
+  --log-level=debug
+```
+
+#### 3. Production Deployment
+```bash
+# Fetch, classify, and deploy to switch
+./nbar-classifier \
+  --config=configs/production.yaml \
+  --fetch-from-switch \
+  --output=cisco \
+  --push-config \
+  --save-config \
+  --batch-size=25
+```
+
+#### 4. Testing and Validation
+```bash
+# Dry run to test configuration
+./nbar-classifier \
+  --config=configs/config.yaml \
+  --fetch-from-switch \
+  --output=cisco \
+  --push-config \
+  --dry-run \
+  --log-level=debug
+```
+
+### Using Make Commands
+
+For development and common tasks:
+
+```bash
+# Build and run with development settings
+make run-dev
+
+# Run tests
+make test
+
+# Build for production
+make build
+
+# Run with Docker
+make docker-build docker-run
+
+# Deploy to Kubernetes
+make k8s-deploy
+```
 
 ## Security
 

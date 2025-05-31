@@ -1,0 +1,229 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nbar-classifier
+  namespace: nbar-system
+  labels:
+    app: nbar-classifier
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nbar-classifier
+  template:
+    metadata:
+      labels:
+        app: nbar-classifier
+        version: v1
+    spec:
+      serviceAccountName: nbar-classifier
+      containers:
+      - name: nbar-classifier
+        image: nbar-classifier:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: LOG_LEVEL
+          value: "info"
+        - name: ENABLE_METRICS
+          value: "true"
+        - name: ENABLE_WEB
+          value: "true"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /app/configs
+          readOnly: true
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: nbar-classifier-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: nbar-classifier-data
+      - name: logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1001
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nbar-classifier
+  namespace: nbar-system
+  labels:
+    app: nbar-classifier
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: nbar-classifier
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nbar-classifier
+  namespace: nbar-system
+  labels:
+    app: nbar-classifier
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nbar-classifier-config
+  namespace: nbar-system
+  labels:
+    app: nbar-classifier
+data:
+  config.yaml: |
+    app:
+      name: "nbar-qos-classifier"
+      version: "2.0.0"
+      environment: "production"
+      batch_size: 25
+      timeout: "90s"
+      max_retries: 3
+
+    ssh:
+      host: ""  # To be set via environment or secret
+      port: "22"
+      user: ""  # To be set via environment or secret
+      key_file: "/etc/ssh-keys/private-key"
+      timeout: "10s"
+      max_connections: 5
+      connection_pool_size: 3
+      keep_alive: "30s"
+
+    ai:
+      provider: "deepseek"
+      api_key: ""  # To be set via secret
+      model: "deepseek-reasoner"
+      temperature: 0.1
+      max_tokens: 1000
+      timeout: "90s"
+      
+      rate_limit:
+        requests_per_minute: 60
+        burst_size: 10
+        backoff_strategy: "exponential"
+        max_backoff: "60s"
+
+    qos:
+      default_class: "CS1"
+      learning_enabled: true
+      confidence_threshold: 0.8
+
+    cache:
+      enabled: true
+      ttl: "24h"
+      max_size: 10000
+      file_path: "/app/data/protocol_classifications_cache.json"
+      compression: true
+      backup_path: "/app/data/protocol_classifications_cache.backup.json"
+
+    logging:
+      level: "info"
+      format: "json"
+      output: "stdout"
+      max_size: 100
+      max_backups: 5
+      max_age: 30
+      compress: true
+
+    metrics:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      namespace: "nbar_classifier"
+
+    web:
+      enabled: true
+      host: "0.0.0.0"
+      port: 8080
+      tls_enabled: false
+
+    security:
+      use_1password: false
+      credential_rotation: false
+      audit_logging: true
+      session_timeout: "24h"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nbar-classifier-data
+  namespace: nbar-system
+  labels:
+    app: nbar-classifier
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
